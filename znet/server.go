@@ -12,6 +12,7 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    ziface.IRouter
 }
 
 func CallbackToClient(conn *net.TCPConn, data []byte, cin int) error {
@@ -45,7 +46,7 @@ func (s *Server) Start() {
 				fmt.Printf("err => %s\n", err)
 				return
 			}
-			c := NewConnection(conn, cid, CallbackToClient)
+			c := NewConnection(conn, cid, s.Router)
 			go c.Start()
 			fmt.Printf("client %d connected success!\n", cid)
 			cid++
@@ -62,11 +63,16 @@ func (s *Server) Server() {
 	select {}
 }
 
+func (s *Server) AddRouter(router ziface.IRouter) {
+	s.Router = router
+}
+
 func NewServer(name string) ziface.IServer {
 	return &Server{
 		name:      name,
 		IPVersion: "tcp4",
 		Port:      9000,
+		Router:    nil,
 	}
 
 }

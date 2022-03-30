@@ -7,7 +7,7 @@ type IConnection interface {
 	Stop()
 	GetTCPConnection() *net.TCPConn
 	GetConnID() uint
-	RemoteAddr() net.TCPAddr
+	RemoteAddr() net.Addr
 	Send([]byte) error
 }
 

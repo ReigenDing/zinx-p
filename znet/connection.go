@@ -8,21 +8,21 @@ import (
 )
 
 type Connection struct {
-	Conn      *net.TCPConn
-	ConnID    uint
-	IsClosed  bool
-	ExitChan  chan bool
-	HandleAPI ziface.HandleFunc
+	Conn     *net.TCPConn
+	ConnID   uint
+	IsClosed bool
+	ExitChan chan bool
+	Router   ziface.IRouter
 }
 
 // 初始化链接
-func NewConnection(conn *net.TCPConn, connID uint, callback ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint, router ziface.IRouter) *Connection {
 	return &Connection{
-		Conn:      conn,
-		ConnID:    connID,
-		IsClosed:  false,
-		ExitChan:  make(chan bool, 1),
-		HandleAPI: callback,
+		Conn:     conn,
+		ConnID:   connID,
+		IsClosed: false,
+		ExitChan: make(chan bool, 1),
+		Router:   router,
 	}
 }
 
@@ -38,10 +38,19 @@ func (c *Connection) StartReader() {
 			fmt.Printf("conn %d read with error => %s", c.ConnID, err)
 			continue
 		}
-		if err := c.HandleAPI(c.Conn, buf, 512); err != nil {
-			fmt.Printf("conn %d handle message error => %s", c.ConnID, err)
-			break
+		req := Request{
+			conn: c,
+			data: buf,
 		}
+		go func(request ziface.IRequest) {
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
+		// if err := c.HandleAPI(c.Conn, buf, 512); err != nil {
+		// 	fmt.Printf("conn %d handle message error => %s", c.ConnID, err)
+		// 	break
+		// }
 	}
 }
 
